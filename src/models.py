@@ -19,3 +19,4 @@ class Sample:
     voltage_volts: float | None
     battery_temp_c: float | None
     brightness_percent: float | None
+    battery_name: str

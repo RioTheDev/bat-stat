@@ -82,21 +82,34 @@ def average_discharge_rate(samples: list[Sample]) -> float | None:
 
 
 def summary_cards(samples: list[Sample]) -> str:
-    latest = samples[-1]
     drain_values = discharge_power_values(samples)
     brightness_values = values(samples, lambda sample: sample.brightness_percent)
     rate_value = average_discharge_rate(samples)
+    latest_by_battery = latest_samples_by_battery(samples)
 
-    cards = [
-        ("Charge Status", format_number(latest.percent, "%", 0), latest.status),
-        ("Runtime", format_runtime(latest.time_left_minutes), f"Est. full: {format_runtime(latest.estimated_full_runtime_minutes)}"),
-        ("Power Draw", format_number(mean(drain_values) if drain_values else None, " W", 2), f"current {format_number(drain_power_watts(latest), ' W', 2)} | {format_number(latest.voltage_volts, ' V', 2)}"),
-        ("Discharge Rate", format_number(rate_value, "%/hr", 1), "avg over logged discharging intervals"),
-        ("Battery Health", format_number(latest.battery_health_percent, "%", 0), f"{format_number(latest.cycle_count, '', 0)} cycles"),
-        ("Brightness", format_number(latest.brightness_percent, "%", 0), f"avg {format_number(mean(brightness_values) if brightness_values else None, '%', 0)}"),
-    ]
-    if latest.battery_temp_c is not None and math.isfinite(latest.battery_temp_c):
-        cards.append(("Temperature", format_number(latest.battery_temp_c, " C", 1), "latest sensor reading"))
+    if len(latest_by_battery) > 1:
+        cards = [
+            (
+                sample.battery_name,
+                format_number(sample.percent, "%", 0),
+                f"{sample.status} | {format_number(sample.power_draw_watts, ' W', 2)} | health {format_number(sample.battery_health_percent, '%', 0)}",
+            )
+            for sample in latest_by_battery
+        ]
+        latest = latest_by_battery[-1]
+        cards.append(("Brightness", format_number(latest.brightness_percent, "%", 0), f"avg {format_number(mean(brightness_values) if brightness_values else None, '%', 0)}"))
+    else:
+        latest = samples[-1]
+        cards = [
+            ("Charge Status", format_number(latest.percent, "%", 0), f"{latest.status} | {latest.battery_name}"),
+            ("Runtime", format_runtime(latest.time_left_minutes), f"Est. full: {format_runtime(latest.estimated_full_runtime_minutes)}"),
+            ("Power Draw", format_number(mean(drain_values) if drain_values else None, " W", 2), f"current {format_number(drain_power_watts(latest), ' W', 2)} | {format_number(latest.voltage_volts, ' V', 2)}"),
+            ("Discharge Rate", format_number(rate_value, "%/hr", 1), "avg over logged discharging intervals"),
+            ("Battery Health", format_number(latest.battery_health_percent, "%", 0), f"{format_number(latest.cycle_count, '', 0)} cycles"),
+            ("Brightness", format_number(latest.brightness_percent, "%", 0), f"avg {format_number(mean(brightness_values) if brightness_values else None, '%', 0)}"),
+        ]
+        if latest.battery_temp_c is not None and math.isfinite(latest.battery_temp_c):
+            cards.append(("Temperature", format_number(latest.battery_temp_c, " C", 1), "latest sensor reading"))
 
     return "\n".join(
         f"""
@@ -108,6 +121,13 @@ def summary_cards(samples: list[Sample]) -> str:
         """
         for title, value, detail in cards
     )
+
+
+def latest_samples_by_battery(samples: list[Sample]) -> list[Sample]:
+    latest: dict[str, Sample] = {}
+    for sample in samples:
+        latest[sample.battery_name] = sample
+    return [latest[name] for name in sorted(latest)]
 
 
 def distribution_list(title: str, counter: Counter[str]) -> str:
@@ -185,6 +205,7 @@ def recent_table(samples: list[Sample], limit: int) -> str:
             f"""
             <tr>
               <td>{html_escape(sample.timestamp.strftime("%Y-%m-%d %H:%M:%S"))}</td>
+              <td>{html_escape(sample.battery_name)}</td>
               <td>{html_escape(format_number(sample.percent, "%", 0))}</td>
               <td>{html_escape(sample.status)}</td>
               <td>{html_escape(sample.adapter_status)}</td>
@@ -203,7 +224,7 @@ def recent_table(samples: list[Sample], limit: int) -> str:
         <table>
           <thead>
             <tr>
-              <th>Timestamp</th><th>Charge</th><th>Status</th><th>Adapter</th>
+              <th>Timestamp</th><th>Battery</th><th>Charge</th><th>Status</th><th>Adapter</th>
               <th>Drain</th><th>Time left</th><th>Voltage</th><th>Brightness</th>
             </tr>
           </thead>
@@ -234,6 +255,7 @@ def sample_payload(samples: list[Sample]) -> list[list[object]]:
             sample.cycle_count,
             sample.status,
             sample.adapter_status,
+            sample.battery_name,
         ]
         for sample in samples
     ]
@@ -254,7 +276,7 @@ def chart_panel(config: dict[str, object]) -> str:
 
 
 def chart_configs_for(samples: list[Sample]) -> list[dict[str, object]]:
-    configs: list[dict[str, object]] = [
+    base_configs: list[dict[str, object]] = [
         {"label": "Charge percent", "key": "charge", "index": 1, "color": "#6bb6ff", "unit": "%", "decimals": 0, "axisMin": 0, "axisMax": 100},
         {"label": "Power draw (drain only)", "key": "drain", "index": 2, "color": "#ff9369", "unit": " W", "decimals": 2, "axisMin": 0, "axisMax": None, "display": "negativeMagnitude"},
         {"label": "Charging power", "key": "charging-power", "index": 8, "color": "#67d6a3", "unit": " W", "decimals": 2, "axisMin": 0, "axisMax": None},
@@ -279,8 +301,8 @@ def chart_configs_for(samples: list[Sample]) -> list[dict[str, object]]:
         },
     ]
     if values(samples, lambda sample: sample.battery_temp_c):
-        configs.append({"label": "Battery temperature", "key": "temperature", "index": 7, "color": "#ff7ab6", "unit": " C", "decimals": 1, "axisMin": None, "axisMax": None})
-    return configs
+        base_configs.append({"label": "Battery temperature", "key": "temperature", "index": 7, "color": "#ff7ab6", "unit": " C", "decimals": 1, "axisMin": None, "axisMax": None})
+    return base_configs
 
 
 def render_template(template_path: Path, context: dict[str, object]) -> str:

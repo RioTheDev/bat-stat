@@ -1,6 +1,8 @@
 # Bat Stat
 
-Bat Stat is a small Linux battery logger and report generator. It records battery samples to a CSV file, then turns that CSV into a dark standalone HTML report with charts, summaries, daily stats, heatmaps, sessions, and recent samples.
+Bat Stat is a small Linux battery logger and report generator. It records battery samples to a CSV file, then turns that CSV into a standalone HTML report with charts, summaries, daily stats, heatmaps, sessions, and recent samples.
+
+Dual-battery laptops are supported with seperate logs for each battery. the report lets you switch between batteries with a dropdown.
 
 It is designed to run from source with Python and systemd. No Python packages are required.
 

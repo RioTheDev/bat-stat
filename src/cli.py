@@ -34,6 +34,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     example_parser.add_argument("--days", type=int, default=45)
     example_parser.add_argument("--interval-minutes", type=int, default=5)
     example_parser.add_argument("--seed", type=int, default=1729)
+    example_parser.add_argument("--battery-names", default="BAT0")
 
     demo_parser = subparsers.add_parser("demo", help="Generate a synthetic CSV and render its HTML report.")
     demo_parser.add_argument("--csv-output", type=Path, default=DEFAULT_EXAMPLE_LOG)
@@ -41,6 +42,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     demo_parser.add_argument("--days", type=int, default=45)
     demo_parser.add_argument("--interval-minutes", type=int, default=5)
     demo_parser.add_argument("--seed", type=int, default=1729)
+    demo_parser.add_argument("--battery-names", default="BAT0")
     demo_parser.add_argument("--template", type=Path, default=None, help=f"HTML template path (default: bundled {TEMPLATE_NAME})")
     demo_parser.add_argument("--recent-limit", type=int, default=120)
     demo_parser.add_argument("--no-open", action="store_true", help="Do not open the generated report in a browser.")
@@ -56,11 +58,11 @@ def main(argv: list[str] | None = None) -> int:
         return run_logger(args.output, args.watch, max(1, args.interval_seconds))
 
     if args.command == "example":
-        write_example_csv(args.output, args.days, max(1, args.interval_minutes), args.seed)
+        write_example_csv(args.output, args.days, max(1, args.interval_minutes), args.seed, args.battery_names)
         return 0
 
     if args.command == "demo":
-        write_example_csv(args.csv_output, args.days, max(1, args.interval_minutes), args.seed)
+        write_example_csv(args.csv_output, args.days, max(1, args.interval_minutes), args.seed, args.battery_names)
         return build_report(args.csv_output, args.report_output, args.recent_limit, args.template, not args.no_open)
 
     return build_report(args.input, args.output, args.recent_limit, args.template, not args.no_open)

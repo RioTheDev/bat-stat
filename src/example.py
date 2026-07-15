@@ -48,8 +48,9 @@ def brightness_for(timestamp: datetime, rng: random.Random) -> int:
     return round(clamp(base + rng.uniform(-10, 12), 12, 96))
 
 
-def generate_rows(days: int, interval_minutes: int, seed: int) -> list[dict[str, object]]:
+def generate_rows(days: int, interval_minutes: int, seed: int, battery_names: str = "BAT0") -> list[dict[str, object]]:
     rng = random.Random(seed)
+    names = [name for name in battery_names.split("+") if name] or ["BAT0"]
     tz = timezone(timedelta(hours=4))
     start = datetime(2026, 6, 1, 0, 0, tzinfo=tz)
     sample_count = int(days * 24 * 60 / interval_minutes)
@@ -101,29 +102,38 @@ def generate_rows(days: int, interval_minutes: int, seed: int) -> list[dict[str,
         if timestamp.hour < 7:
             temp -= 3.2
 
-        rows.append(
-            {
-                "timestamp": timestamp.isoformat(),
-                "session_id": session_id_for(timestamp),
-                "percent": round(percent),
-                "status": status,
-                "ac_adapter_status": adapter,
-                "power_draw_watts": f"{watts:.2f}",
-                "time_left": format_csv_duration(runtime_minutes),
-                "estimated_full_runtime": format_csv_duration(full_runtime_minutes),
-                "cycle_count": cycle_count,
-                "battery_health_percent": f"{health:.1f}",
-                "voltage_volts": f"{voltage:.2f}",
-                "battery_temp_c": f"{temp:.1f}",
-                "brightness_percent": brightness,
-            }
-        )
+        split_total = sum(range(1, len(names) + 1))
+        for battery_index, battery_name in enumerate(names):
+            share = (battery_index + 1) / split_total
+            offset = (battery_index - (len(names) - 1) / 2) * 8
+            battery_percent = clamp(percent + offset, 4, 100)
+            battery_watts = watts * share
+            battery_runtime = runtime_minutes * (0.8 + share) if runtime_minutes else None
+            battery_full_runtime = full_runtime_minutes * (0.8 + share) if full_runtime_minutes else None
+            rows.append(
+                {
+                    "timestamp": timestamp.isoformat(),
+                    "session_id": session_id_for(timestamp),
+                    "percent": round(battery_percent),
+                    "status": status,
+                    "ac_adapter_status": adapter,
+                    "power_draw_watts": f"{battery_watts:.2f}",
+                    "time_left": format_csv_duration(battery_runtime),
+                    "estimated_full_runtime": format_csv_duration(battery_full_runtime),
+                    "cycle_count": cycle_count + battery_index * 3,
+                    "battery_health_percent": f"{clamp(health - battery_index * 1.4, 0, 100):.1f}",
+                    "voltage_volts": f"{voltage + (battery_index - 0.5) * 0.12:.2f}",
+                    "battery_temp_c": f"{temp + battery_index * 1.1:.1f}",
+                    "brightness_percent": brightness,
+                    "battery_name": battery_name,
+                }
+            )
 
     return rows
 
 
-def write_example_csv(output: Path, days: int, interval_minutes: int, seed: int) -> int:
-    rows = generate_rows(days, interval_minutes, seed)
+def write_example_csv(output: Path, days: int, interval_minutes: int, seed: int, battery_names: str = "BAT0") -> int:
+    rows = generate_rows(days, interval_minutes, seed, battery_names)
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=CSV_FIELDS)

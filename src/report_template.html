@@ -80,8 +80,8 @@
     .controls {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 14px;
+      justify-content: flex-start;
+      gap: 22px;
       flex-wrap: wrap;
     }
     .controls label {
@@ -102,6 +102,9 @@
     .range-summary, .panel-note {
       color: var(--muted);
       font-size: 0.88rem;
+    }
+    .range-summary {
+      margin-left: auto;
     }
     .chart-grid {
       display: grid;
@@ -278,6 +281,7 @@
       .chart-grid { grid-template-columns: 1fr; }
       .stat strong { font-size: 1.35rem; }
       .panel-title-row { align-items: flex-start; flex-direction: column; }
+      .range-summary { margin-left: 0; }
     }
   </style>
 </head>
@@ -295,6 +299,10 @@
       $summary_cards
     </section>
     <section class="panel wide controls">
+      <label for="battery-select">
+        <span>Battery</span>
+        <select id="battery-select"></select>
+      </label>
       <label for="range-select">
         <span>Graph range</span>
         <select id="range-select">
@@ -347,6 +355,7 @@
     const samples = JSON.parse(document.getElementById("battery-samples").textContent);
     const charts = JSON.parse(document.getElementById("battery-charts").textContent);
     const select = document.getElementById("range-select");
+    const batterySelect = document.getElementById("battery-select");
     const rangeSummary = document.getElementById("range-summary");
     const statusSummary = document.getElementById("status-summary");
     const rangeMs = {
@@ -431,13 +440,35 @@
       return reduced;
     }
 
+    function batteryName(row) {
+      return row[13] || "BAT0";
+    }
+
+    function batteryNames() {
+      return [...new Set(samples.map((row) => batteryName(row)))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    }
+
+    function populateBatterySelect() {
+      const names = batteryNames();
+      batterySelect.innerHTML = names
+        .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
+        .join("");
+      batterySelect.disabled = names.length <= 1;
+    }
+
+    function selectedBatteryRows() {
+      const selected = batterySelect.value || batteryNames()[0] || "BAT0";
+      return samples.filter((row) => batteryName(row) === selected);
+    }
+
     function rowsForRange() {
-      if (!samples.length) return [];
+      const batteryRows = selectedBatteryRows();
+      if (!batteryRows.length) return [];
       const selected = select.value;
       const duration = rangeMs[selected];
-      const latest = samples[samples.length - 1][0];
-      if (!duration) return samples;
-      return samples.filter((row) => row[0] >= latest - duration);
+      const latest = batteryRows[batteryRows.length - 1][0];
+      if (!duration) return batteryRows;
+      return batteryRows.filter((row) => row[0] >= latest - duration);
     }
 
     function closestPoint(points, targetTime) {
@@ -475,8 +506,14 @@
     }
 
     function renderOverlayChart(chart, rows) {
+      const chartRows = rows;
       const host = document.getElementById(`chart-${chart.key}`);
       const note = document.getElementById(`chart-note-${chart.key}`);
+      if (!chartRows.length) {
+        host.innerHTML = '<div class="empty-chart">No data recorded for this interval.</div>';
+        note.textContent = "0 samples";
+        return;
+      }
       const width = 920;
       const height = 300;
       const left = 58;
@@ -485,12 +522,12 @@
       const bottom = 42;
       const plotWidth = width - left - right;
       const plotHeight = height - top - bottom;
-      const start = rows[0][0];
-      const end = rows[rows.length - 1][0];
+      const start = chartRows[0][0];
+      const end = chartRows[chartRows.length - 1][0];
       const totalMs = Math.max(1, end - start);
       const seriesData = chart.series
         .map((series) => {
-          const rawPoints = rows
+          const rawPoints = chartRows
             .map((row) => [row[0], row[series.index]])
             .filter((point) => finite(point[1]));
           return { ...series, rawPoints, points: downsample(rawPoints.map((point) => [point[0], displayValue(series, point[1])])), side: series.side || "left" };
@@ -622,11 +659,17 @@
         renderOverlayChart(chart, rows);
         return;
       }
+      const chartRows = rows;
       const host = document.getElementById(`chart-${chart.key}`);
       const note = document.getElementById(`chart-note-${chart.key}`);
+      if (!chartRows.length) {
+        host.innerHTML = '<div class="empty-chart">No data recorded for this interval.</div>';
+        note.textContent = "0 samples";
+        return;
+      }
       const rawSegments = [];
       let currentSegment = [];
-      for (const row of rows) {
+      for (const row of chartRows) {
         const value = row[chart.index];
         if (finite(value)) {
           currentSegment.push([row[0], value]);
@@ -655,8 +698,8 @@
       const bottom = 42;
       const plotWidth = width - left - right;
       const plotHeight = height - top - bottom;
-      const start = rows[0][0];
-      const end = rows[rows.length - 1][0];
+      const start = chartRows[0][0];
+      const end = chartRows[chartRows.length - 1][0];
       const totalMs = Math.max(1, end - start);
       const rawValues = rawPoints.map((point) => point[1]);
       const dataValues = rawPoints.map((point) => displayValue(chart, point[1]));
@@ -1036,12 +1079,14 @@
       renderDailySummary(rows);
       renderUsageHeatmap(rows);
       if (rows.length) {
-        rangeSummary.textContent = `${rows.length.toLocaleString()} samples · ${formatDate(rows[0][0])} to ${formatDate(rows[rows.length - 1][0])}`;
+        rangeSummary.textContent = `${batterySelect.value} · ${rows.length.toLocaleString()} samples · ${formatDate(rows[0][0])} to ${formatDate(rows[rows.length - 1][0])}`;
       } else {
-        rangeSummary.textContent = "0 samples";
+        rangeSummary.textContent = `${batterySelect.value || "Battery"} · 0 samples`;
       }
     }
 
+    populateBatterySelect();
+    batterySelect.addEventListener("change", render);
     select.addEventListener("change", render);
     render();
   })();

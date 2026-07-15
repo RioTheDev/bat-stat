@@ -34,6 +34,10 @@ def ensure_csv_header(csv_file: Path) -> bool:
                 if column in header:
                     index = header.index(column)
                     migrated_row.append(row[index] if index < len(row) else "")
+                elif column == "battery_name" and "battery_names" in header:
+                    index = header.index("battery_names")
+                    value = row[index] if index < len(row) else ""
+                    migrated_row.append((value.split("+", 1)[0] or "BAT0") if value else "BAT0")
                 else:
                     migrated_row.append("")
             writer.writerow(migrated_row)
@@ -69,6 +73,7 @@ def read_samples(path: Path) -> list[Sample]:
                     voltage_volts=parse_float(row.get("voltage_volts")),
                     battery_temp_c=parse_float(row.get("battery_temp_c")),
                     brightness_percent=parse_float(row.get("brightness_percent")),
+                    battery_name=(row.get("battery_name") or row.get("battery_names") or "BAT0").strip(),
                 )
             )
 
