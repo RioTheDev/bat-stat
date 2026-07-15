@@ -1223,6 +1223,8 @@
           return {
             key,
             count: 0,
+            firstCharge: null,
+            lastCharge: null,
             minCharge: null,
             maxCharge: null,
             drainSum: 0,
@@ -1239,6 +1241,8 @@
         function addSampleToBucket(bucket, row, minutes) {
           bucket.count += 1;
           if (finite(row[1])) {
+            if (bucket.firstCharge === null) bucket.firstCharge = row[1];
+            bucket.lastCharge = row[1];
             bucket.minCharge =
               bucket.minCharge === null
                 ? row[1]
@@ -1328,9 +1332,9 @@
                 ? day.brightnessSum / day.brightnessCount
                 : null;
               const range =
-                day.minCharge === null || day.maxCharge === null
+                day.firstCharge === null || day.lastCharge === null
                   ? "n/a"
-                  : `${day.minCharge.toFixed(0)}-${day.maxCharge.toFixed(0)}%`;
+                  : `${day.firstCharge.toFixed(0)}-${day.lastCharge.toFixed(0)}%`;
               return `
           <tr>
             <td>${escapeHtml(day.key)}</td>
@@ -1349,7 +1353,7 @@
           <table>
             <thead>
               <tr>
-                <th>Day</th><th>Charge range</th><th>Avg drain</th><th>Avg charge</th>
+                <th>Day</th><th>Charge change</th><th>Avg drain</th><th>Avg charge</th>
                 <th>Discharging</th><th>Plugged in</th><th>Brightness</th><th>Samples</th>
               </tr>
             </thead>
