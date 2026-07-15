@@ -209,10 +209,11 @@
     }
     .bar-row b { color: var(--ink); text-align: right; }
     .daily-summary-host { min-height: 120px; }
-    .heatmap-host { min-height: 180px; }
+    .heatmap-host { min-height: 0; }
+    .heatmap-host .empty-chart { min-height: 96px; }
     .heatmap-wrap {
       overflow-x: auto;
-      padding-bottom: 4px;
+      padding-bottom: 2px;
     }
     .heat-hours, .heat-row {
       display: grid;

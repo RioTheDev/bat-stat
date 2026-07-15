@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import webbrowser
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -326,11 +327,32 @@ def render_report(
     return render_template(template_path, context)
 
 
-def build_report(input_path: Path, output_path: Path, recent_limit: int, template_path: Path | None = None) -> int:
+def open_report(output_path: Path) -> None:
+    report_uri = output_path.resolve().as_uri()
+    try:
+        opened = webbrowser.open(report_uri)
+    except webbrowser.Error:
+        opened = False
+
+    if opened:
+        print(f"Opened {report_uri}")
+    else:
+        print(f"Open this report in your browser: {report_uri}")
+
+
+def build_report(
+    input_path: Path,
+    output_path: Path,
+    recent_limit: int,
+    template_path: Path | None = None,
+    open_after_export: bool = True,
+) -> int:
     samples = read_samples(input_path)
     generated_at = datetime.now().astimezone()
     report = render_report(samples, input_path, generated_at, max(1, recent_limit), template_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(report, encoding="utf-8")
     print(f"Wrote {output_path} with {len(samples)} samples from {input_path}")
+    if open_after_export:
+        open_report(output_path)
     return 0

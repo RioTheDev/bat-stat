@@ -58,7 +58,7 @@ This reads:
 /var/log/battery-stat/battery_log.csv
 ```
 
-and writes `battery_report.html` in your current directory.
+and writes `battery_report.html` in your current directory, then opens it in your browser.
 
 Choose an output path:
 
@@ -70,6 +70,12 @@ Use a different CSV:
 
 ```sh
 bat-stat report --input /path/to/battery_log.csv --output ~/battery_report.html
+```
+
+Skip opening the browser:
+
+```sh
+bat-stat report --no-open
 ```
 
 ## Logging
@@ -184,7 +190,7 @@ sudo REMOVE_LOG=1 ./uninstall.sh
 Run from the repo without installing:
 
 ```sh
-python3 bat_stat.py report --input /path/to/battery_log.csv --output report.html
+python3 bat_stat.py report --input /path/to/battery_log.csv --output report.html --no-open
 ```
 
 Generate a synthetic CSV:
