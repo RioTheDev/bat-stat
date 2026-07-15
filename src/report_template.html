@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>$title</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101113;
+      --ink: #f4f1e8;
+      --muted: #aab3b7;
+      --panel: #181b1d;
+      --panel-strong: #1f2326;
+      --line: #30363a;
+      --soft: #252a2e;
+      --accent: #6bb6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, #17191c 0, var(--bg) 320px),
+        var(--bg);
+    }
+    header {
+      padding: 28px clamp(16px, 4vw, 48px) 18px;
+      background: #151719;
+      border-bottom: 1px solid var(--line);
+    }
+    h1, h2 { margin: 0; letter-spacing: 0; }
+    h1 { font-size: clamp(1.65rem, 3vw, 2.4rem); }
+    h2 { font-size: 1rem; margin-bottom: 14px; }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+      color: var(--muted);
+    }
+    .meta-grid div {
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-width: 0;
+    }
+    .meta-grid span {
+      display: block;
+      font-size: 0.73rem;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .meta-grid code {
+      display: block;
+      overflow-wrap: anywhere;
+      color: var(--ink);
+    }
+    main {
+      padding: 22px clamp(16px, 4vw, 48px) 40px;
+      display: grid;
+      gap: 18px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .stat, .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+    }
+    .stat { padding: 18px; min-height: 126px; }
+    .stat span, .stat small { color: var(--muted); display: block; }
+    .stat strong { display: block; font-size: clamp(1.55rem, 2.4vw, 2rem); line-height: 1.12; margin: 10px 0 8px; }
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .controls label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    select {
+      color: var(--ink);
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 34px 8px 10px;
+      font: inherit;
+    }
+    .range-summary, .panel-note {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .panel { padding: 16px; min-width: 0; }
+    .panel-title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .panel-title-row h2 { margin-bottom: 0; }
+    .wide { grid-column: 1 / -1; }
+    .chart-panel { min-height: 370px; }
+    .chart-host { min-height: 300px; position: relative; }
+    .chart-legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin: -4px 0 4px 58px;
+    }
+    .chart-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chart-legend i {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .chart { width: 100%; height: auto; display: block; }
+    .chart-grid-lines line { stroke: var(--soft); stroke-width: 1; }
+    .axis-labels text { fill: var(--muted); font-size: 12px; }
+    .series { stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+    .area { stroke: none; }
+    .hover-capture { fill: transparent; cursor: crosshair; }
+    .hover-line {
+      stroke: rgba(244, 241, 232, 0.42);
+      stroke-width: 1.5;
+      stroke-dasharray: 4 5;
+      pointer-events: none;
+    }
+    .hover-dot {
+      stroke: var(--panel);
+      stroke-width: 2.5;
+      pointer-events: none;
+    }
+    .chart-tooltip {
+      position: absolute;
+      z-index: 3;
+      min-width: 142px;
+      padding: 8px 10px;
+      background: rgba(10, 12, 13, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+      pointer-events: none;
+    }
+    .chart-tooltip strong, .chart-tooltip span { display: block; }
+    .chart-tooltip strong { font-size: 0.96rem; }
+    .chart-tooltip span { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+    .points circle { opacity: 0.9; }
+    .empty-chart {
+      min-height: 300px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+    }
+    .timeline {
+      position: relative;
+      height: 18px;
+      background: var(--soft);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .timeline span { position: absolute; top: 0; bottom: 0; }
+    .bar-row {
+      display: grid;
+      grid-template-columns: minmax(90px, 1fr) 3fr 42px;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+      color: var(--muted);
+    }
+    .bar-row div {
+      height: 10px;
+      background: var(--soft);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-row i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #67d6a3);
+      border-radius: 999px;
+    }
+    .bar-row b { color: var(--ink); text-align: right; }
+    .daily-summary-host { min-height: 120px; }
+    .heatmap-host { min-height: 180px; }
+    .heatmap-wrap {
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .heat-hours, .heat-row {
+      display: grid;
+      grid-template-columns: 54px repeat(24, minmax(18px, 1fr));
+      gap: 3px;
+      align-items: center;
+      min-width: 760px;
+    }
+    .heat-hours {
+      color: var(--muted);
+      font-size: 0.68rem;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .heat-row { margin: 3px 0; }
+    .heat-row b {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-align: right;
+      padding-right: 5px;
+    }
+    .heat-cell {
+      display: block;
+      height: 15px;
+      border-radius: 3px;
+      border: 1px solid rgba(255,255,255,0.035);
+    }
+    .heat-legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin: 10px 0 0 54px;
+    }
+    .heat-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .heat-legend i {
+      width: 18px;
+      height: 10px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+    .heat-drain { background: linear-gradient(90deg, rgba(255, 137, 48, 0.4), rgba(255, 137, 48, 1)); }
+    .heat-charge { background: linear-gradient(90deg, rgba(44, 214, 141, 0.4), rgba(44, 214, 141, 1)); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 10px 9px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+    th { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; }
+    tbody tr:hover { background: var(--panel-strong); }
+    tr:last-child td { border-bottom: 0; }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    @media (max-width: 1100px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 860px) {
+      .stats { grid-template-columns: 1fr; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .stat strong { font-size: 1.35rem; }
+      .panel-title-row { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Battery report</h1>
+    <div class="meta-grid">
+      <div><span>Source</span><code>$source</code></div>
+      <div><span>Generated</span><code>$generated_at</code></div>
+      <div><span>Range</span><code>$range_start to $range_end | $observed_duration, $sample_count samples</code></div>
+    </div>
+  </header>
+  <main>
+    <section class="stats">
+      $summary_cards
+    </section>
+    <section class="panel wide controls">
+      <label for="range-select">
+        <span>Graph range</span>
+        <select id="range-select">
+          <option value="hour">Last hour</option>
+          <option value="day" selected>Last day</option>
+          <option value="week">Last week</option>
+          <option value="month">Last month</option>
+          <option value="year">Last year</option>
+          <option value="total">Total</option>
+        </select>
+      </label>
+      <span id="range-summary" class="range-summary"></span>
+    </section>
+    <section class="panel wide">
+      <div class="panel-title-row">
+        <h2>Status timeline</h2>
+        <span id="status-summary" class="panel-note"></span>
+      </div>
+      <div id="status-timeline" class="timeline" aria-label="Charging status timeline"></div>
+    </section>
+    <div class="chart-grid">
+      $chart_sections
+    </div>
+    <section class="panel wide">
+      <div class="panel-title-row">
+        <h2>Daily summaries</h2>
+        <span id="daily-summary-note" class="panel-note"></span>
+      </div>
+      <div id="daily-summary" class="daily-summary-host"></div>
+    </section>
+    <section class="panel wide">
+      <div class="panel-title-row">
+        <h2>Usage heatmap</h2>
+        <span id="usage-heatmap-note" class="panel-note"></span>
+      </div>
+      <div id="usage-heatmap" class="heatmap-host"></div>
+    </section>
+    <div class="chart-grid">
+      $status_distribution
+      $adapter_distribution
+      $session_table
+      $recent_table
+    </div>
+  </main>
+  
+  <script id="battery-samples" type="application/json">$samples_json</script>
+  <script id="battery-charts" type="application/json">$charts_json</script>
+  <script>
+  (() => {
+    const samples = JSON.parse(document.getElementById("battery-samples").textContent);
+    const charts = JSON.parse(document.getElementById("battery-charts").textContent);
+    const select = document.getElementById("range-select");
+    const rangeSummary = document.getElementById("range-summary");
+    const statusSummary = document.getElementById("status-summary");
+    const rangeMs = {
+      hour: 60 * 60 * 1000,
+      day: 24 * 60 * 60 * 1000,
+      week: 7 * 24 * 60 * 60 * 1000,
+      month: 30 * 24 * 60 * 60 * 1000,
+      year: 365 * 24 * 60 * 60 * 1000,
+      total: null,
+    };
+    const statusColors = {
+      charging: "#67d6a3",
+      discharging: "#ff9369",
+      full: "#6bb6ff",
+      "not charging": "#f1d36b",
+      unknown: "#8f989d",
+    };
+
+    function finite(value) {
+      return typeof value === "number" && Number.isFinite(value);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function formatNumber(value, unit, decimals) {
+      if (!finite(value)) return "n/a";
+      return `${value.toFixed(decimals)}${unit || ""}`;
+    }
+
+    function formatDurationMinutes(value) {
+      if (!finite(value)) return "n/a";
+      const total = Math.max(0, Math.round(value));
+      const hours = Math.floor(total / 60);
+      const minutes = total % 60;
+      if (hours <= 0) return `${minutes}m`;
+      return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+    }
+
+    function formatValue(chart, value) {
+      if (chart.format === "duration") return formatDurationMinutes(value);
+      return formatNumber(value, chart.unit, chart.decimals);
+    }
+
+    function displayValue(chart, value) {
+      if (!finite(value)) return null;
+      return chart.display === "negativeMagnitude" ? Math.abs(value) : value;
+    }
+
+    function labelValue(chart, value) {
+      if (!finite(value)) return null;
+      return chart.display === "negativeMagnitude" ? -Math.abs(value) : value;
+    }
+
+    function formatDate(ms, compact = false) {
+      const date = new Date(ms);
+      if (compact) {
+        return date.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      }
+      return date.toLocaleString([], { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function downsample(points, maxPoints = 720) {
+      if (points.length <= maxPoints) return points;
+      const bucketSize = Math.ceil(points.length / maxPoints);
+      const reduced = [];
+      for (let index = 0; index < points.length; index += bucketSize) {
+        const bucket = points.slice(index, index + bucketSize);
+        let time = 0;
+        let value = 0;
+        for (const point of bucket) {
+          time += point[0];
+          value += point[1];
+        }
+        reduced.push([time / bucket.length, value / bucket.length]);
+      }
+      return reduced;
+    }
+
+    function rowsForRange() {
+      if (!samples.length) return [];
+      const selected = select.value;
+      const duration = rangeMs[selected];
+      const latest = samples[samples.length - 1][0];
+      if (!duration) return samples;
+      return samples.filter((row) => row[0] >= latest - duration);
+    }
+
+    function closestPoint(points, targetTime) {
+      let low = 0;
+      let high = points.length - 1;
+      while (low < high) {
+        const mid = Math.floor((low + high) / 2);
+        if (points[mid][0] < targetTime) low = mid + 1;
+        else high = mid;
+      }
+      const before = points[Math.max(0, low - 1)];
+      const after = points[low];
+      if (!before) return after;
+      if (!after) return before;
+      return Math.abs(before[0] - targetTime) <= Math.abs(after[0] - targetTime) ? before : after;
+    }
+
+    function chartDomain(series, values) {
+      const dataMin = Math.min(...values);
+      const dataMax = Math.max(...values);
+      const rawMin = series.axisMin === null || series.axisMin === undefined ? dataMin : Math.min(dataMin, series.axisMin);
+      const rawMax = series.axisMax === null || series.axisMax === undefined ? dataMax : Math.max(dataMax, series.axisMax);
+      if (rawMin === rawMax) {
+        const padding = Math.abs(rawMin) * 0.05 || 1;
+        let yMin = series.axisMin === null || series.axisMin === undefined ? rawMin - padding : rawMin;
+        let yMax = series.axisMax === null || series.axisMax === undefined ? rawMax + padding : rawMax;
+        if (yMin === yMax) yMin -= padding;
+        return [yMin, yMax];
+      }
+      const padding = (rawMax - rawMin) * 0.12;
+      return [
+        series.axisMin === null || series.axisMin === undefined ? rawMin - padding : rawMin,
+        series.axisMax === null || series.axisMax === undefined ? rawMax + padding : rawMax,
+      ];
+    }
+
+    function renderOverlayChart(chart, rows) {
+      const host = document.getElementById(`chart-${chart.key}`);
+      const note = document.getElementById(`chart-note-${chart.key}`);
+      const width = 920;
+      const height = 300;
+      const left = 58;
+      const right = chart.singleAxis ? 24 : 58;
+      const top = 24;
+      const bottom = 42;
+      const plotWidth = width - left - right;
+      const plotHeight = height - top - bottom;
+      const start = rows[0][0];
+      const end = rows[rows.length - 1][0];
+      const totalMs = Math.max(1, end - start);
+      const seriesData = chart.series
+        .map((series) => {
+          const rawPoints = rows
+            .map((row) => [row[0], row[series.index]])
+            .filter((point) => finite(point[1]));
+          return { ...series, rawPoints, points: downsample(rawPoints.map((point) => [point[0], displayValue(series, point[1])])), side: series.side || "left" };
+        })
+        .filter((series) => series.rawPoints.length);
+
+      if (!seriesData.length) {
+        host.innerHTML = '<div class="empty-chart">No data recorded for this interval.</div>';
+        note.textContent = "0 samples";
+        return;
+      }
+
+      const domains = {};
+      for (const side of ["left", "right"]) {
+        const sideSeries = seriesData.filter((series) => series.side === side);
+        if (!sideSeries.length) continue;
+        const template = sideSeries[0];
+        const values = sideSeries.flatMap((series) => series.rawPoints.map((point) => displayValue(series, point[1])));
+        domains[side] = chartDomain(template, values);
+      }
+      if (!domains.right) domains.right = domains.left;
+
+      const xFor = (time) => left + ((time - start) / totalMs) * plotWidth;
+      const yFor = (series, value) => {
+        const [yMin, yMax] = domains[series.side];
+        return top + (1 - ((value - yMin) / (yMax - yMin))) * plotHeight;
+      };
+
+      const grid = [];
+      const labels = [];
+      const [leftMin, leftMax] = domains.left;
+      const rightDomain = domains.right;
+      const rightSeries = seriesData.find((series) => series.side === "right") || seriesData[0];
+      const leftSeries = seriesData.find((series) => series.side === "left") || seriesData[0];
+      for (let index = 0; index < 5; index += 1) {
+        const ratio = index / 4;
+        const y = top + ratio * plotHeight;
+        const leftValue = leftMax - ratio * (leftMax - leftMin);
+        const rightValue = rightDomain[1] - ratio * (rightDomain[1] - rightDomain[0]);
+        grid.push(`<line x1="${left}" y1="${y.toFixed(2)}" x2="${width - right}" y2="${y.toFixed(2)}" />`);
+        labels.push(`<text x="${left - 10}" y="${(y + 4).toFixed(2)}" text-anchor="end">${escapeHtml(formatValue(leftSeries, labelValue(leftSeries, leftValue)))}</text>`);
+        if (!chart.singleAxis) {
+          labels.push(`<text x="${width - right + 10}" y="${(y + 4).toFixed(2)}" text-anchor="start">${escapeHtml(formatValue(rightSeries, labelValue(rightSeries, rightValue)))}</text>`);
+        }
+      }
+
+      const span = end - start;
+      const compactDates = span <= 3 * 24 * 60 * 60 * 1000;
+      for (let index = 0; index < 4; index += 1) {
+        const ratio = index / 3;
+        const x = left + ratio * plotWidth;
+        labels.push(`<text x="${x.toFixed(2)}" y="${height - 14}" text-anchor="middle">${escapeHtml(formatDate(start + span * ratio, compactDates))}</text>`);
+      }
+
+      const polylines = seriesData.map((series) => {
+        const points = series.points
+          .map((point) => `${xFor(point[0]).toFixed(2)},${yFor(series, point[1]).toFixed(2)}`)
+          .join(" ");
+        return `<polyline class="series" points="${points}" fill="none" stroke="${series.color}" />`;
+      });
+      const dots = seriesData.map((series) => `<circle class="hover-dot" data-key="${series.key}" cx="${left}" cy="${top}" r="5" fill="${series.color}" hidden />`);
+      const legend = seriesData.map((series) => `<span><i style="background:${series.color}"></i>${escapeHtml(series.label)}</span>`).join("");
+      const latestParts = seriesData.map((series) => {
+        const point = series.rawPoints[series.rawPoints.length - 1];
+        return `${series.label} ${formatValue(series, point[1])}`;
+      });
+      note.textContent = latestParts.join(" · ");
+
+      host.innerHTML = `
+        <div class="chart-legend">${legend}</div>
+        <svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(chart.label)}">
+          <g class="chart-grid-lines">${grid.join("")}</g>
+          <g class="axis-labels">${labels.join("")}</g>
+          ${polylines.join("")}
+          <line class="hover-line" x1="${left}" x2="${left}" y1="${top}" y2="${top + plotHeight}" hidden />
+          ${dots.join("")}
+          <rect class="hover-capture" x="${left}" y="${top}" width="${plotWidth}" height="${plotHeight}" />
+        </svg>
+        <div class="chart-tooltip" hidden></div>`;
+
+      const svg = host.querySelector("svg");
+      const capture = host.querySelector(".hover-capture");
+      const line = host.querySelector(".hover-line");
+      const tooltip = host.querySelector(".chart-tooltip");
+      const dotMap = Object.fromEntries([...host.querySelectorAll(".hover-dot")].map((dot) => [dot.dataset.key, dot]));
+
+      function moveHover(event) {
+        const bounds = svg.getBoundingClientRect();
+        const svgX = Math.max(left, Math.min(width - right, ((event.clientX - bounds.left) / bounds.width) * width));
+        const targetTime = start + ((svgX - left) / plotWidth) * totalMs;
+        const nearest = seriesData.map((series) => [series, closestPoint(series.rawPoints, targetTime)]).filter((item) => item[1]);
+        if (!nearest.length) return;
+        const guideTime = nearest[0][1][0];
+        line.setAttribute("x1", xFor(guideTime).toFixed(2));
+        line.setAttribute("x2", xFor(guideTime).toFixed(2));
+        line.hidden = false;
+        for (const [series, point] of nearest) {
+          const dot = dotMap[series.key];
+          dot.setAttribute("cx", xFor(point[0]).toFixed(2));
+          dot.setAttribute("cy", yFor(series, displayValue(series, point[1])).toFixed(2));
+          dot.hidden = false;
+        }
+
+        tooltip.innerHTML = `<strong>${escapeHtml(formatDate(guideTime))}</strong>${nearest.map(([series, point]) => `<span><b style="color:${series.color}">${escapeHtml(series.label)}</b> ${escapeHtml(formatValue(series, point[1]))}</span>`).join("")}`;
+        tooltip.hidden = false;
+        const hostBounds = host.getBoundingClientRect();
+        const tooltipWidth = tooltip.offsetWidth || 180;
+        const tooltipHeight = tooltip.offsetHeight || 72;
+        const leftPx = Math.max(8, Math.min(hostBounds.width - tooltipWidth - 8, event.clientX - hostBounds.left + 12));
+        const topPx = Math.max(8, Math.min(hostBounds.height - tooltipHeight - 8, event.clientY - hostBounds.top - tooltipHeight - 10));
+        tooltip.style.left = `${leftPx}px`;
+        tooltip.style.top = `${topPx}px`;
+      }
+
+      function hideHover() {
+        line.hidden = true;
+        for (const dot of Object.values(dotMap)) dot.hidden = true;
+        tooltip.hidden = true;
+      }
+
+      capture.addEventListener("mousemove", moveHover);
+      capture.addEventListener("mouseleave", hideHover);
+      capture.addEventListener("touchstart", (event) => moveHover(event.touches[0]), { passive: true });
+      capture.addEventListener("touchmove", (event) => moveHover(event.touches[0]), { passive: true });
+    }
+
+    function renderChart(chart, rows) {
+      if (chart.series) {
+        renderOverlayChart(chart, rows);
+        return;
+      }
+      const host = document.getElementById(`chart-${chart.key}`);
+      const note = document.getElementById(`chart-note-${chart.key}`);
+      const rawSegments = [];
+      let currentSegment = [];
+      for (const row of rows) {
+        const value = row[chart.index];
+        if (finite(value)) {
+          currentSegment.push([row[0], value]);
+        } else if (currentSegment.length) {
+          rawSegments.push(currentSegment);
+          currentSegment = [];
+        }
+      }
+      if (currentSegment.length) rawSegments.push(currentSegment);
+      const rawPoints = rawSegments.flat();
+
+      if (!rawPoints.length) {
+        host.innerHTML = '<div class="empty-chart">No data recorded for this interval.</div>';
+        note.textContent = "0 samples";
+        return;
+      }
+
+      const displaySegments = rawSegments.map((segment) =>
+        downsample(segment.map((point) => [point[0], displayValue(chart, point[1])]))
+      );
+      const width = 920;
+      const height = 300;
+      const left = 58;
+      const right = 24;
+      const top = 24;
+      const bottom = 42;
+      const plotWidth = width - left - right;
+      const plotHeight = height - top - bottom;
+      const start = rows[0][0];
+      const end = rows[rows.length - 1][0];
+      const totalMs = Math.max(1, end - start);
+      const rawValues = rawPoints.map((point) => point[1]);
+      const dataValues = rawPoints.map((point) => displayValue(chart, point[1]));
+      const dataMin = Math.min(...dataValues);
+      const dataMax = Math.max(...dataValues);
+      const rawMin = chart.axisMin === null || chart.axisMin === undefined ? dataMin : Math.min(dataMin, chart.axisMin);
+      const rawMax = chart.axisMax === null || chart.axisMax === undefined ? dataMax : Math.max(dataMax, chart.axisMax);
+      let yMin;
+      let yMax;
+      if (rawMin === rawMax) {
+        const padding = Math.abs(rawMin) * 0.05 || 1;
+        yMin = chart.axisMin === null || chart.axisMin === undefined ? rawMin - padding : rawMin;
+        yMax = chart.axisMax === null || chart.axisMax === undefined ? rawMax + padding : rawMax;
+        if (yMin === yMax) yMin -= padding;
+      } else {
+        const padding = (rawMax - rawMin) * 0.12;
+        yMin = chart.axisMin === null || chart.axisMin === undefined ? rawMin - padding : rawMin;
+        yMax = chart.axisMax === null || chart.axisMax === undefined ? rawMax + padding : rawMax;
+      }
+
+      const xFor = (time) => left + ((time - start) / totalMs) * plotWidth;
+      const yFor = (value) => top + (1 - ((value - yMin) / (yMax - yMin))) * plotHeight;
+      const polylines = displaySegments
+        .map((segment) => segment.map((point) => `${xFor(point[0]).toFixed(2)},${yFor(point[1]).toFixed(2)}`).join(" "))
+        .filter(Boolean);
+      const areas = displaySegments
+        .filter((segment) => segment.length > 1)
+        .map((segment) => {
+          const polyline = segment.map((point) => `${xFor(point[0]).toFixed(2)},${yFor(point[1]).toFixed(2)}`).join(" ");
+          return `${xFor(segment[0][0]).toFixed(2)},${top + plotHeight} ${polyline} ${xFor(segment[segment.length - 1][0]).toFixed(2)},${top + plotHeight}`;
+        });
+
+      const grid = [];
+      const labels = [];
+      for (let index = 0; index < 5; index += 1) {
+        const ratio = index / 4;
+        const y = top + ratio * plotHeight;
+        const value = yMax - ratio * (yMax - yMin);
+        grid.push(`<line x1="${left}" y1="${y.toFixed(2)}" x2="${width - right}" y2="${y.toFixed(2)}" />`);
+        labels.push(`<text x="${left - 10}" y="${(y + 4).toFixed(2)}" text-anchor="end">${escapeHtml(formatValue(chart, labelValue(chart, value)))}</text>`);
+      }
+
+      const span = end - start;
+      const compactDates = span <= 3 * 24 * 60 * 60 * 1000;
+      for (let index = 0; index < 4; index += 1) {
+        const ratio = index / 3;
+        const x = left + ratio * plotWidth;
+        labels.push(`<text x="${x.toFixed(2)}" y="${height - 14}" text-anchor="middle">${escapeHtml(formatDate(start + span * ratio, compactDates))}</text>`);
+      }
+
+      const avg = rawValues.reduce((sum, value) => sum + value, 0) / rawValues.length;
+      note.textContent = `${rawPoints.length.toLocaleString()} samples · avg ${formatValue(chart, avg)}`;
+      host.innerHTML = `
+        <svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(chart.label)}">
+          <defs>
+            <linearGradient id="fill-${chart.key}" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="${chart.color}" stop-opacity="0.26" />
+              <stop offset="100%" stop-color="${chart.color}" stop-opacity="0.04" />
+            </linearGradient>
+          </defs>
+          <g class="chart-grid-lines">${grid.join("")}</g>
+          <g class="axis-labels">${labels.join("")}</g>
+          ${areas.map((area) => `<polyline class="area" points="${area}" fill="url(#fill-${chart.key})" />`).join("")}
+          ${polylines.map((polyline) => `<polyline class="series" points="${polyline}" fill="none" stroke="${chart.color}" />`).join("")}
+          <line class="hover-line" x1="${left}" x2="${left}" y1="${top}" y2="${top + plotHeight}" hidden />
+          <circle class="hover-dot" cx="${left}" cy="${top}" r="5" fill="${chart.color}" hidden />
+          <rect class="hover-capture" x="${left}" y="${top}" width="${plotWidth}" height="${plotHeight}" />
+        </svg>
+        <div class="chart-tooltip" hidden></div>`;
+
+      const svg = host.querySelector("svg");
+      const capture = host.querySelector(".hover-capture");
+      const line = host.querySelector(".hover-line");
+      const dot = host.querySelector(".hover-dot");
+      const tooltip = host.querySelector(".chart-tooltip");
+
+      function moveHover(event) {
+        const bounds = svg.getBoundingClientRect();
+        const svgX = Math.max(left, Math.min(width - right, ((event.clientX - bounds.left) / bounds.width) * width));
+        const targetTime = start + ((svgX - left) / plotWidth) * totalMs;
+        const point = closestPoint(rawPoints, targetTime);
+        if (!point) return;
+        const x = xFor(point[0]);
+        const y = yFor(displayValue(chart, point[1]));
+        line.setAttribute("x1", x.toFixed(2));
+        line.setAttribute("x2", x.toFixed(2));
+        dot.setAttribute("cx", x.toFixed(2));
+        dot.setAttribute("cy", y.toFixed(2));
+        line.hidden = false;
+        dot.hidden = false;
+
+        tooltip.innerHTML = `<strong>${escapeHtml(formatValue(chart, point[1]))}</strong><span>${escapeHtml(formatDate(point[0]))}</span>`;
+        tooltip.hidden = false;
+        const hostBounds = host.getBoundingClientRect();
+        const tooltipWidth = tooltip.offsetWidth || 160;
+        const tooltipHeight = tooltip.offsetHeight || 52;
+        const leftPx = Math.max(8, Math.min(hostBounds.width - tooltipWidth - 8, event.clientX - hostBounds.left + 12));
+        const topPx = Math.max(8, Math.min(hostBounds.height - tooltipHeight - 8, event.clientY - hostBounds.top - tooltipHeight - 10));
+        tooltip.style.left = `${leftPx}px`;
+        tooltip.style.top = `${topPx}px`;
+      }
+
+      function hideHover() {
+        line.hidden = true;
+        dot.hidden = true;
+        tooltip.hidden = true;
+      }
+
+      capture.addEventListener("mousemove", moveHover);
+      capture.addEventListener("mouseleave", hideHover);
+      capture.addEventListener("touchstart", (event) => moveHover(event.touches[0]), { passive: true });
+      capture.addEventListener("touchmove", (event) => moveHover(event.touches[0]), { passive: true });
+    }
+
+    function renderTimeline(rows) {
+      const host = document.getElementById("status-timeline");
+      if (!rows.length) {
+        host.innerHTML = "";
+        statusSummary.textContent = "0 samples";
+        return;
+      }
+      const start = rows[0][0];
+      const end = rows[rows.length - 1][0];
+      const totalMs = Math.max(1, end - start);
+      const segments = [];
+      let currentStart = rows[0][0];
+      let currentStatus = rows[0][11] || "unknown";
+      let currentAdapter = rows[0][12] || "unknown";
+
+      for (let index = 1; index < rows.length; index += 1) {
+        const status = rows[index][11] || "unknown";
+        const adapter = rows[index][12] || "unknown";
+        if (status !== currentStatus || adapter !== currentAdapter) {
+          segments.push([currentStart, rows[index][0], currentStatus, currentAdapter]);
+          currentStart = rows[index][0];
+          currentStatus = status;
+          currentAdapter = adapter;
+        }
+      }
+      segments.push([currentStart, end, currentStatus, currentAdapter]);
+
+      host.innerHTML = segments.map((segment) => {
+        const [segmentStart, segmentEnd, status, adapter] = segment;
+        const x = ((segmentStart - start) / totalMs) * 100;
+        const width = Math.max(0.35, ((segmentEnd - segmentStart) / totalMs) * 100);
+        const color = statusColors[String(status).toLowerCase()] || statusColors.unknown;
+        return `<span style="left:${x.toFixed(3)}%;width:${width.toFixed(3)}%;background:${color}" title="${escapeHtml(formatDate(segmentStart))} - ${escapeHtml(status)} (${escapeHtml(adapter)})"></span>`;
+      }).join("");
+      statusSummary.textContent = `${rows.length.toLocaleString()} samples · ${formatDate(start, true)} to ${formatDate(end, true)}`;
+    }
+
+    function dateKey(ms) {
+      const date = new Date(ms);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatShortDuration(minutes) {
+      if (!finite(minutes) || minutes <= 0) return "0m";
+      if (minutes < 60) return `${Math.round(minutes)}m`;
+      const hours = Math.floor(minutes / 60);
+      const mins = Math.round(minutes % 60);
+      return mins ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+
+    function formatHourLabel(hour) {
+      const suffix = hour < 12 ? "AM" : "PM";
+      const hour12 = hour % 12 || 12;
+      return `${hour12} ${suffix}`;
+    }
+
+    function emptyBucket(key) {
+      return {
+        key,
+        count: 0,
+        minCharge: null,
+        maxCharge: null,
+        drainSum: 0,
+        drainCount: 0,
+        chargeSum: 0,
+        chargeCount: 0,
+        brightnessSum: 0,
+        brightnessCount: 0,
+        dischargeMinutes: 0,
+        chargingMinutes: 0,
+      };
+    }
+
+    function addSampleToBucket(bucket, row, minutes) {
+      bucket.count += 1;
+      if (finite(row[1])) {
+        bucket.minCharge = bucket.minCharge === null ? row[1] : Math.min(bucket.minCharge, row[1]);
+        bucket.maxCharge = bucket.maxCharge === null ? row[1] : Math.max(bucket.maxCharge, row[1]);
+      }
+      if (finite(row[2])) {
+        bucket.drainSum += row[2];
+        bucket.drainCount += 1;
+        bucket.dischargeMinutes += minutes;
+      }
+      if (finite(row[8])) {
+        bucket.chargeSum += row[8];
+        bucket.chargeCount += 1;
+        bucket.chargingMinutes += minutes;
+      }
+      if (finite(row[6])) {
+        bucket.brightnessSum += row[6];
+        bucket.brightnessCount += 1;
+      }
+      const status = String(row[11] || "").toLowerCase();
+      const adapter = String(row[12] || "").toLowerCase();
+      if (!finite(row[2]) && (status === "discharging" || adapter === "offline")) bucket.dischargeMinutes += minutes;
+      if (!finite(row[8]) && (status === "charging" || status === "full" || adapter === "online")) bucket.chargingMinutes += minutes;
+    }
+
+    function rowIntervalMinutes(rows, index) {
+      if (rows.length < 2) return 0;
+      const current = rows[index];
+      const next = rows[index + 1];
+      const previous = rows[index - 1];
+      let ms = 0;
+      if (next) ms = next[0] - current[0];
+      else if (previous) ms = current[0] - previous[0];
+      if (ms <= 0 || ms > 6 * 60 * 60 * 1000) return 0;
+      return ms / 60000;
+    }
+
+    function aggregateDaily(rows) {
+      const buckets = new Map();
+      for (let index = 0; index < rows.length; index += 1) {
+        const row = rows[index];
+        const key = dateKey(row[0]);
+        if (!buckets.has(key)) buckets.set(key, emptyBucket(key));
+        addSampleToBucket(buckets.get(key), row, rowIntervalMinutes(rows, index));
+      }
+      return [...buckets.values()].sort((a, b) => a.key.localeCompare(b.key));
+    }
+
+    function renderDailySummary(rows) {
+      const host = document.getElementById("daily-summary");
+      const note = document.getElementById("daily-summary-note");
+      const days = aggregateDaily(rows);
+      if (!days.length) {
+        host.innerHTML = '<div class="empty-chart">No daily summary for this interval.</div>';
+        note.textContent = "";
+        return;
+      }
+      note.textContent = `${days.length.toLocaleString()} day${days.length === 1 ? "" : "s"}`;
+      const body = days.map((day) => {
+        const avgDrain = day.drainCount ? day.drainSum / day.drainCount : null;
+        const avgCharge = day.chargeCount ? day.chargeSum / day.chargeCount : null;
+        const avgBrightness = day.brightnessCount ? day.brightnessSum / day.brightnessCount : null;
+        const range = day.minCharge === null || day.maxCharge === null ? "n/a" : `${day.minCharge.toFixed(0)}-${day.maxCharge.toFixed(0)}%`;
+        return `
+          <tr>
+            <td>${escapeHtml(day.key)}</td>
+            <td>${escapeHtml(range)}</td>
+            <td>${escapeHtml(formatNumber(avgDrain, " W", 2))}</td>
+            <td>${escapeHtml(formatNumber(avgCharge, " W", 2))}</td>
+            <td>${escapeHtml(formatShortDuration(day.dischargeMinutes))}</td>
+            <td>${escapeHtml(formatShortDuration(day.chargingMinutes))}</td>
+            <td>${escapeHtml(formatNumber(avgBrightness, "%", 0))}</td>
+            <td>${day.count.toLocaleString()}</td>
+          </tr>`;
+      }).join("");
+      host.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Day</th><th>Charge range</th><th>Avg drain</th><th>Avg charge</th>
+                <th>Discharging</th><th>Plugged in</th><th>Brightness</th><th>Samples</th>
+              </tr>
+            </thead>
+            <tbody>${body}</tbody>
+          </table>
+        </div>`;
+    }
+
+    function mixColor(from, to, ratio) {
+      const clamped = Math.max(0, Math.min(1, ratio));
+      const values = from.map((value, index) => Math.round(value + (to[index] - value) * clamped));
+      return `rgb(${values[0]}, ${values[1]}, ${values[2]})`;
+    }
+
+    function drainHeatColor(strength) {
+      const alpha = 0.4 + Math.max(0, Math.min(1, strength)) * 0.6;
+      return `rgba(255, 137, 48, ${alpha.toFixed(3)})`;
+    }
+
+    function chargeHeatColor(strength) {
+      const alpha = 0.4 + Math.max(0, Math.min(1, strength)) * 0.6;
+      return `rgba(44, 214, 141, ${alpha.toFixed(3)})`;
+    }
+
+    function heatColor(bucket, drainMin, drainMax, chargeMin, chargeMax) {
+      if (!bucket || bucket.count === 0) return "rgba(255,255,255,0.035)";
+      const avgDrain = bucket.drainCount ? bucket.drainSum / bucket.drainCount : null;
+      if (finite(avgDrain)) {
+        const magnitude = Math.abs(avgDrain);
+        const denominator = drainMax > drainMin ? drainMax - drainMin : 1;
+        const strength = drainMax > drainMin ? (magnitude - drainMin) / denominator : 1;
+        return drainHeatColor(strength);
+      }
+      const avgCharge = bucket.chargeCount ? bucket.chargeSum / bucket.chargeCount : null;
+      if (finite(avgCharge)) {
+        const denominator = chargeMax > chargeMin ? chargeMax - chargeMin : 1;
+        const strength = chargeMax > chargeMin ? (avgCharge - chargeMin) / denominator : 1;
+        return chargeHeatColor(strength);
+      }
+      if (bucket.chargingMinutes > 0) return "rgba(44, 214, 141, 0.4)";
+      return "rgba(255,255,255,0.06)";
+    }
+
+    function renderUsageHeatmap(rows) {
+      const host = document.getElementById("usage-heatmap");
+      const note = document.getElementById("usage-heatmap-note");
+      if (!rows.length) {
+        host.innerHTML = '<div class="empty-chart">No heatmap data for this interval.</div>';
+        note.textContent = "";
+        return;
+      }
+      const days = [...new Set(rows.map((row) => dateKey(row[0])))].sort();
+      const buckets = new Map();
+      for (let index = 0; index < rows.length; index += 1) {
+        const row = rows[index];
+        const date = dateKey(row[0]);
+        const hour = new Date(row[0]).getHours();
+        const key = `${date}-${hour}`;
+        if (!buckets.has(key)) buckets.set(key, emptyBucket(key));
+        addSampleToBucket(buckets.get(key), row, rowIntervalMinutes(rows, index));
+      }
+      const drainValues = [...buckets.values()]
+        .filter((bucket) => bucket.drainCount)
+        .map((bucket) => Math.abs(bucket.drainSum / bucket.drainCount));
+      const chargeValues = [...buckets.values()]
+        .filter((bucket) => bucket.chargeCount)
+        .map((bucket) => bucket.chargeSum / bucket.chargeCount);
+      drainValues.sort((a, b) => a - b);
+      chargeValues.sort((a, b) => a - b);
+      const drainMin = drainValues.length ? drainValues[0] : 0;
+      const drainMax = drainValues.length ? drainValues[drainValues.length - 1] : 0;
+      const chargeMin = chargeValues.length ? chargeValues[0] : 0;
+      const chargeMax = chargeValues.length ? chargeValues[chargeValues.length - 1] : 0;
+      note.textContent = `${days.length.toLocaleString()} day${days.length === 1 ? "" : "s"} · hourly avg drain`;
+
+      const hourLabels = Array.from({ length: 24 }, (_, hour) => `<span>${formatHourLabel(hour)}</span>`).join("");
+      const rowsHtml = days.map((day) => {
+        const cells = Array.from({ length: 24 }, (_, hour) => {
+          const bucket = buckets.get(`${day}-${hour}`);
+          const avgDrain = bucket?.drainCount ? bucket.drainSum / bucket.drainCount : null;
+          const avgCharge = bucket?.chargeCount ? bucket.chargeSum / bucket.chargeCount : null;
+          const title = bucket
+            ? `${day} ${formatHourLabel(hour)} · drain ${formatNumber(avgDrain, " W", 2)} · charge ${formatNumber(avgCharge, " W", 2)} · discharging ${formatShortDuration(bucket.dischargeMinutes)} · plugged in ${formatShortDuration(bucket.chargingMinutes)}`
+            : `${day} ${formatHourLabel(hour)} · no data`;
+          return `<span class="heat-cell" style="background:${heatColor(bucket, drainMin, drainMax, chargeMin, chargeMax)}" title="${escapeHtml(title)}"></span>`;
+        }).join("");
+        return `<div class="heat-row"><b>${escapeHtml(day.slice(5))}</b>${cells}</div>`;
+      }).join("");
+
+      host.innerHTML = `
+        <div class="heatmap-wrap">
+          <div class="heat-hours"><span></span>${hourLabels}</div>
+          <div class="heatmap">${rowsHtml}</div>
+          <div class="heat-legend">
+            <span><i class="heat-drain"></i> brighter orange: more drain</span>
+            <span><i class="heat-charge"></i> light to dark: lower to higher charging</span>
+          </div>
+        </div>`;
+    }
+
+    function render() {
+      const rows = rowsForRange();
+      for (const chart of charts) renderChart(chart, rows);
+      renderTimeline(rows);
+      renderDailySummary(rows);
+      renderUsageHeatmap(rows);
+      if (rows.length) {
+        rangeSummary.textContent = `${rows.length.toLocaleString()} samples · ${formatDate(rows[0][0])} to ${formatDate(rows[rows.length - 1][0])}`;
+      } else {
+        rangeSummary.textContent = "0 samples";
+      }
+    }
+
+    select.addEventListener("change", render);
+    render();
+  })();
+  </script>
+</body>
+</html>

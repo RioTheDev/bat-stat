@@ -1,0 +1,18 @@
+[project]
+name = "bat-stat"
+version = "0.1.0"
+description = "Battery CSV logger and dark HTML report generator."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+bat-stat = "cli:main"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools]
+py-modules = ["cli", "constants", "csv_log", "example", "formatting", "logger", "models", "report", "templates"]
+
+[tool.setuptools.data-files]
+"." = ["src/report_template.html"]
