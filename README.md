@@ -49,7 +49,7 @@ By default, the timer logs one sample every 5 minutes.
 After installing:
 
 ```sh
-bat-stat report
+bat-stat
 ```
 
 This reads:
@@ -75,7 +75,7 @@ bat-stat report --input /path/to/battery_log.csv --output ~/battery_report.html
 Skip opening the browser:
 
 ```sh
-bat-stat report --no-open
+bat-stat --no-open
 ```
 
 ## Logging
@@ -190,7 +190,7 @@ sudo REMOVE_LOG=1 ./uninstall.sh
 Run from the repo without installing:
 
 ```sh
-python3 bat_stat.py report --input /path/to/battery_log.csv --output report.html --no-open
+python3 bat_stat.py --input /path/to/battery_log.csv --output report.html --no-open
 ```
 
 Generate a synthetic CSV:
