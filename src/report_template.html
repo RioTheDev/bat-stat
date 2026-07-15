@@ -453,7 +453,7 @@
       batterySelect.innerHTML = names
         .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
         .join("");
-      batterySelect.disabled = names.length <= 1;
+      batterySelect.closest("label").hidden = names.length <= 1;
     }
 
     function selectedBatteryRows() {
