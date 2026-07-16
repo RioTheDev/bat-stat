@@ -1385,24 +1385,31 @@
           const avgDrain = bucket.drainCount
             ? bucket.drainSum / bucket.drainCount
             : null;
-          if (finite(avgDrain)) {
-            const magnitude = Math.abs(avgDrain);
-            const denominator = drainMax > drainMin ? drainMax - drainMin : 1;
-            const strength =
-              drainMax > drainMin ? (magnitude - drainMin) / denominator : 1;
-            return drainHeatColor(strength);
-          }
           const avgCharge = bucket.chargeCount
             ? bucket.chargeSum / bucket.chargeCount
             : null;
-          if (finite(avgCharge)) {
+          const mostlyCharging =
+            bucket.chargingMinutes > bucket.dischargeMinutes ||
+            (!bucket.dischargeMinutes && finite(avgCharge));
+          const mostlyDischarging =
+            bucket.dischargeMinutes > bucket.chargingMinutes ||
+            (!bucket.chargingMinutes && finite(avgDrain));
+          if (mostlyCharging && finite(avgCharge)) {
             const denominator =
               chargeMax > chargeMin ? chargeMax - chargeMin : 1;
             const strength =
               chargeMax > chargeMin ? (avgCharge - chargeMin) / denominator : 1;
             return chargeHeatColor(strength);
           }
+          if (mostlyDischarging && finite(avgDrain)) {
+            const magnitude = Math.abs(avgDrain);
+            const denominator = drainMax > drainMin ? drainMax - drainMin : 1;
+            const strength =
+              drainMax > drainMin ? (magnitude - drainMin) / denominator : 1;
+            return drainHeatColor(strength);
+          }
           if (bucket.chargingMinutes > 0) return "rgba(44, 214, 141, 0.4)";
+          if (bucket.dischargeMinutes > 0) return "rgba(255, 137, 48, 0.4)";
           return "rgba(255,255,255,0.06)";
         }
 
@@ -1445,7 +1452,7 @@
           const chargeMax = chargeValues.length
             ? chargeValues[chargeValues.length - 1]
             : 0;
-          note.textContent = `${days.length.toLocaleString()} day${days.length === 1 ? "" : "s"} · hourly avg drain`;
+          note.textContent = `${days.length.toLocaleString()} day${days.length === 1 ? "" : "s"} · hourly dominant mode`;
 
           const hourLabels = Array.from(
             { length: 24 },

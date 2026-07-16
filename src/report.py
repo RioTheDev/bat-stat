@@ -14,12 +14,18 @@ from formatting import format_minutes, format_number, format_runtime, html_escap
 from models import Sample
 from templates import default_template_path
 
+MAX_RATE_INTERVAL_HOURS = 0.5
+
 
 def is_discharging(sample: Sample) -> bool:
+    status = sample.status.lower()
+    adapter_status = sample.adapter_status.lower()
+    if adapter_status == "online" and status in {"charging", "full", "not charging"}:
+        return False
     return (
-        sample.status.lower() == "discharging"
-        or sample.adapter_status.lower() == "offline"
-        or (sample.power_draw_watts is not None and sample.power_draw_watts <= 0)
+        status == "discharging"
+        or adapter_status == "offline"
+        or (sample.power_draw_watts is not None and sample.power_draw_watts < 0)
     )
 
 
@@ -69,7 +75,7 @@ def average_discharge_rate(samples: list[Sample]) -> float | None:
         if not is_discharging(current):
             continue
         elapsed_hours = (next_sample.timestamp - current.timestamp).total_seconds() / 3600
-        if elapsed_hours <= 0:
+        if elapsed_hours <= 0 or elapsed_hours > MAX_RATE_INTERVAL_HOURS:
             continue
         percent_change = next_sample.percent - current.percent
         if percent_change > 0:
@@ -81,10 +87,36 @@ def average_discharge_rate(samples: list[Sample]) -> float | None:
     return total_percent_change / total_hours
 
 
+def average_charge_rate(samples: list[Sample]) -> float | None:
+    total_percent_change = 0.0
+    total_hours = 0.0
+    for current, next_sample in zip(samples, samples[1:]):
+        if current.percent is None or next_sample.percent is None:
+            continue
+        is_charging = (
+            current.status.lower() == "charging"
+            or current.adapter_status.lower() == "online"
+            or charging_power_watts(current) is not None
+        )
+        if not is_charging:
+            continue
+        elapsed_hours = (next_sample.timestamp - current.timestamp).total_seconds() / 3600
+        if elapsed_hours <= 0 or elapsed_hours > MAX_RATE_INTERVAL_HOURS:
+            continue
+        percent_change = next_sample.percent - current.percent
+        if percent_change <= 0:
+            continue
+        total_percent_change += percent_change
+        total_hours += elapsed_hours
+    if total_hours <= 0:
+        return None
+    return total_percent_change / total_hours
+
+
 def summary_cards(samples: list[Sample]) -> str:
     drain_values = discharge_power_values(samples)
-    brightness_values = values(samples, lambda sample: sample.brightness_percent)
-    rate_value = average_discharge_rate(samples)
+    discharge_rate_value = average_discharge_rate(samples)
+    charge_rate_value = average_charge_rate(samples)
     latest_by_battery = latest_samples_by_battery(samples)
 
     if len(latest_by_battery) > 1:
@@ -96,17 +128,16 @@ def summary_cards(samples: list[Sample]) -> str:
             )
             for sample in latest_by_battery
         ]
-        latest = latest_by_battery[-1]
-        cards.append(("Brightness", format_number(latest.brightness_percent, "%", 0), f"avg {format_number(mean(brightness_values) if brightness_values else None, '%', 0)}"))
+        cards.append(("Charge Rate", format_number(charge_rate_value, "%/hr", 1), "avg over logged charging intervals"))
     else:
         latest = samples[-1]
         cards = [
             ("Charge Status", format_number(latest.percent, "%", 0), f"{latest.status} | {latest.battery_name}"),
             ("Runtime", format_runtime(latest.time_left_minutes), f"Est. full: {format_runtime(latest.estimated_full_runtime_minutes)}"),
             ("Power Draw", format_number(mean(drain_values) if drain_values else None, " W", 2), f"current {format_number(drain_power_watts(latest), ' W', 2)} | {format_number(latest.voltage_volts, ' V', 2)}"),
-            ("Discharge Rate", format_number(rate_value, "%/hr", 1), "avg over logged discharging intervals"),
+            ("Discharge Rate", format_number(discharge_rate_value, "%/hr", 1), "avg over logged discharging intervals"),
+            ("Charge Rate", format_number(charge_rate_value, "%/hr", 1), "avg over logged charging intervals"),
             ("Battery Health", format_number(latest.battery_health_percent, "%", 0), f"{format_number(latest.cycle_count, '', 0)} cycles"),
-            ("Brightness", format_number(latest.brightness_percent, "%", 0), f"avg {format_number(mean(brightness_values) if brightness_values else None, '%', 0)}"),
         ]
         if latest.battery_temp_c is not None and math.isfinite(latest.battery_temp_c):
             cards.append(("Temperature", format_number(latest.battery_temp_c, " C", 1), "latest sensor reading"))
