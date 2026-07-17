@@ -44,13 +44,7 @@ def charging_power_watts(sample: Sample) -> float | None:
 
 
 def discharge_power_values(samples: Iterable[Sample]) -> list[float]:
-    return [
-        sample.power_draw_watts
-        for sample in samples
-        if sample.power_draw_watts is not None
-        and math.isfinite(sample.power_draw_watts)
-        and sample.power_draw_watts <= 0
-    ]
+    return [value for sample in samples if (value := drain_power_watts(sample)) is not None]
 
 
 def observed_duration(samples: list[Sample]) -> str:

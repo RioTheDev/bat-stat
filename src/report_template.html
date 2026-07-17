@@ -511,6 +511,7 @@
           year: 365 * 24 * 60 * 60 * 1000,
           total: null,
         };
+        const maxChartGapMs = 30 * 60 * 1000;
         const statusColors = {
           charging: "#67d6a3",
           discharging: "#ff9369",
@@ -598,6 +599,21 @@
             reduced.push([time / bucket.length, value / bucket.length]);
           }
           return reduced;
+        }
+
+        function splitPointGaps(points, maxGapMs = maxChartGapMs) {
+          const segments = [];
+          let segment = [];
+          for (const point of points) {
+            const previous = segment[segment.length - 1];
+            if (previous && point[0] - previous[0] > maxGapMs) {
+              segments.push(segment);
+              segment = [];
+            }
+            segment.push(point);
+          }
+          if (segment.length) segments.push(segment);
+          return segments;
         }
 
         function batteryName(row) {
@@ -719,11 +735,13 @@
               return {
                 ...series,
                 rawPoints,
-                points: downsample(
-                  rawPoints.map((point) => [
-                    point[0],
-                    displayValue(series, point[1]),
-                  ]),
+                segments: splitPointGaps(rawPoints).map((segment) =>
+                  downsample(
+                    segment.map((point) => [
+                      point[0],
+                      displayValue(series, point[1]),
+                    ]),
+                  ),
                 ),
                 side: series.side || "left",
               };
@@ -797,13 +815,17 @@
           }
 
           const polylines = seriesData.map((series) => {
-            const points = series.points
-              .map(
-                (point) =>
-                  `${xFor(point[0]).toFixed(2)},${yFor(series, point[1]).toFixed(2)}`,
-              )
-              .join(" ");
-            return `<polyline class="series" points="${points}" fill="none" stroke="${series.color}" />`;
+            return series.segments
+              .map((segment) => {
+                const points = segment
+                  .map(
+                    (point) =>
+                      `${xFor(point[0]).toFixed(2)},${yFor(series, point[1]).toFixed(2)}`,
+                  )
+                  .join(" ");
+                return `<polyline class="series" points="${points}" fill="none" stroke="${series.color}" />`;
+              })
+              .join("");
           });
           const dots = seriesData.map(
             (series) =>
